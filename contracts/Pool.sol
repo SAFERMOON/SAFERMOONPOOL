@@ -8,6 +8,7 @@ import "./SaferMoonWrapper.sol";
 
 contract Pool is SaferMoonWrapper, IRewardDistributionRecipient {
     IERC20 public rewardToken;
+    uint8 public rewardTokenDecimals;
     uint256 public duration;
 
     uint256 public periodFinish = 0;
@@ -22,11 +23,18 @@ contract Pool is SaferMoonWrapper, IRewardDistributionRecipient {
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
 
-    constructor(address _stakedToken, address _rewardToken,  uint256 _duration)
+    constructor(
+      address _stakedToken,
+      uint8 _stakedTokenDecimals,
+      address _rewardToken,
+      uint8 _rewardTokenDecimals,
+      uint256 _duration
+    )
         public
-        SaferMoonWrapper(_stakedToken)
+        SaferMoonWrapper(_stakedToken, _stakedTokenDecimals)
     {
         rewardToken = IERC20(_rewardToken);
+        rewardTokenDecimals = _rewardTokenDecimals;
         duration = _duration;
     }
 
@@ -53,16 +61,16 @@ contract Pool is SaferMoonWrapper, IRewardDistributionRecipient {
                 lastTimeRewardApplicable()
                     .sub(lastUpdateTime)
                     .mul(rewardRate)
-                    .mul(1e18)
-                    .div(totalSupply())
+                    .mul(uint256(10) ** rewardTokenDecimals)
+                    .div(totalSupply().mul(uint256(10) ** (rewardTokenDecimals - stakedTokenDecimals)))
             );
     }
 
     function earned(address account) public view returns (uint256) {
         return
-            balanceOf(account)
+            balanceOf(account).mul(uint256(10) ** (rewardTokenDecimals - stakedTokenDecimals))
                 .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
-                .div(1e18)
+                .div(uint256(10) ** rewardTokenDecimals)
                 .add(rewards[account]);
     }
 
