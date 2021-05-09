@@ -17,7 +17,7 @@ describe("Pool", () => {
   let pool;
 
   let owner;
-  let address;
+  let other;
 
   beforeEach(async () => {
     StakedToken = await ethers.getContractFactory("StakedToken");

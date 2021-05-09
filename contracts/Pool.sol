@@ -24,11 +24,11 @@ contract Pool is SaferMoonWrapper, IRewardDistributionRecipient {
     event RewardPaid(address indexed user, uint256 reward);
 
     constructor(
-      address _stakedToken,
-      uint8 _stakedTokenDecimals,
-      address _rewardToken,
-      uint8 _rewardTokenDecimals,
-      uint256 _duration
+        address _stakedToken,
+        uint8 _stakedTokenDecimals,
+        address _rewardToken,
+        uint8 _rewardTokenDecimals,
+        uint256 _duration
     )
         public
         SaferMoonWrapper(_stakedToken, _stakedTokenDecimals)
