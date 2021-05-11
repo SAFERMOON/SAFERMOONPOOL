@@ -24,4 +24,6 @@ interface ISaferMoon {
     function reflectionFromToken(uint256 tAmount, bool deductTransferFee) external view returns (uint256);
 
     function tokenFromReflection(uint256 rAmount) external view returns (uint256);
+
+    function isExcludedFromFee(address account) external view returns (bool);
 }

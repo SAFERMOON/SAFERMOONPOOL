@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
-contract IRewardDistributionRecipient is Ownable {
+contract RewardDistributionRecipient is Ownable {
     address rewardDistribution;
 
     function notifyRewardAmount(uint256 reward) external;

@@ -27,7 +27,7 @@ describe("Pool", () => {
     rewardToken = await RewardToken.deploy("RewardToken", "REWARD", "1000000000000000000000000");
 
     Pool = await ethers.getContractFactory("Pool");
-    pool = await Pool.deploy(stakedToken.address, 9, rewardToken.address, 18, 86400);
+    pool = await Pool.deploy(stakedToken.address, rewardToken.address, 86400);
 
     [owner, other] = await ethers.getSigners();
   });
@@ -66,6 +66,7 @@ describe("Pool", () => {
 
   describe("stake", () => {
     it("stakes the given amount", async () => {
+      await stakedToken.excludeFromFee(pool.address);
       await stakedToken.approve(pool.address, "1000000000000");
 
       const balance = await stakedToken.balanceOf(owner.address);
@@ -74,23 +75,40 @@ describe("Pool", () => {
       expect(await pool.totalSupply()).to.equal("1000000000000");
       expect(await pool.balanceOf(owner.address)).to.equal("1000000000000");
       expect(balance.sub(await stakedToken.balanceOf(owner.address))).to.equal("1000000000000");
+
+      await stakedToken.transfer(other.address, "1000000000000");
+      await stakedToken.connect(other).approve(pool.address, "1000000000000");
+
+      await expect(pool.connect(other).stake("1000000000000")).to.emit(pool, "Staked").withArgs(other.address, "1000000000000");
+
+      expect(await pool.totalSupply()).to.equal("2000000000000");
+      expect(await pool.balanceOf(other.address)).to.equal("1000000000000");
+      expect(await stakedToken.balanceOf(other.address)).to.equal("0");
     });
   });
 
   describe("withdraw", () => {
     it("withdraws the given amount", async () => {
+      await stakedToken.excludeFromFee(pool.address);
       await stakedToken.approve(pool.address, "1000000000000");
       await pool.stake("1000000000000");
 
-      expect(await pool.totalSupply()).to.equal("1000000000000");
-      expect(await pool.balanceOf(owner.address)).to.equal("1000000000000");
+      await stakedToken.transfer(other.address, "1000000000000");
+      await stakedToken.connect(other).approve(pool.address, "1000000000000");
+      await pool.connect(other).stake("1000000000000");
 
       const balance = await stakedToken.balanceOf(owner.address);
       await expect(pool.withdraw("1000000000000")).to.emit(pool, "Withdrawn").withArgs(owner.address, "1000000000000");
 
-      expect(await pool.totalSupply()).to.equal("0");
+      expect(await pool.totalSupply()).to.equal("1000000000000");
       expect(await pool.balanceOf(owner.address)).to.equal("0");
       expect((await stakedToken.balanceOf(owner.address)).sub(balance)).to.equal("1000000000000");
+
+      await expect(pool.connect(other).withdraw("1000000000000")).to.emit(pool, "Withdrawn").withArgs(other.address, "1000000000000");
+
+      expect(await pool.totalSupply()).to.equal("0");
+      expect(await pool.balanceOf(other.address)).to.equal("0");
+      expect(await stakedToken.balanceOf(other.address)).to.equal("1000000000000");
     });
   });
 
@@ -131,6 +149,7 @@ describe("Pool", () => {
 
   describe("earned", () => {
     it("returns the amount of rewards earned", async () => {
+      await stakedToken.excludeFromFee(pool.address);
       await stakedToken.approve(pool.address, "1000000000000");
       await pool.stake("1000000000000");
 
@@ -146,6 +165,15 @@ describe("Pool", () => {
       await increaseTime(3600);
 
       expect(await pool.earned(owner.address)).to.be.closeTo(BigNumber.from("1000000000000000000000").div(24), "100000000000000000");
+
+      await pool.getReward();
+      await stakedToken.transfer(other.address, "1000000000000");
+      await stakedToken.connect(other).approve(pool.address, "1000000000000");
+      await pool.connect(other).stake("1000000000000");
+      await increaseTime(3600);
+
+      expect(await pool.earned(owner.address)).to.be.closeTo(BigNumber.from("1000000000000000000000").div(24).div(2), "100000000000000000");
+      expect(await pool.earned(other.address)).to.be.closeTo(BigNumber.from("1000000000000000000000").div(24).div(2), "100000000000000000");
     });
   });
 
@@ -173,6 +201,7 @@ describe("Pool", () => {
       await pool.setRewardDistribution(owner.address);
       await pool.notifyRewardAmount("1000000000000000000000");
 
+      await stakedToken.excludeFromFee(pool.address);
       await stakedToken.approve(pool.address, "1000000000000");
       await pool.stake("1000000000000");
 
@@ -227,8 +256,21 @@ describe("Pool", () => {
       expect(await pool.balanceOf(owner.address)).to.be.at.least("1005000000000");
       expect(await pool.totalSupply()).to.equal(await pool.balanceOf(owner.address));
 
+      await stakedToken.connect(other).approve(pool.address, "1000000000000");
+      await pool.connect(other).stake("1000000000000");
+
+      // amount transferred ≅ 90000000000000000000000
+      await stakedToken.connect(other).transfer(owner.address, await stakedToken.balanceOf(other.address));
+
+      // 5% of the amount transferred ≅ 4500000000000000000000
+      // each account staked 1e-12 of the total suppply
+      expect(await pool.totalSupply()).to.be.at.least("2014000000000");
+      expect(await pool.balanceOf(owner.address)).to.be.at.least("1009500000000");
+      expect(await pool.balanceOf(other.address)).to.be.at.least("1004500000000");
+
       // make sure we can withdraw
       await expect(pool.exit());
+      await expect(pool.connect(other).exit());
     });
   });
 });

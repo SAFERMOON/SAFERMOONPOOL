@@ -3,12 +3,11 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./IRewardDistributionRecipient.sol";
+import "./RewardDistributionRecipient.sol";
 import "./SaferMoonWrapper.sol";
 
-contract Pool is SaferMoonWrapper, IRewardDistributionRecipient {
+contract Pool is SaferMoonWrapper, RewardDistributionRecipient {
     IERC20 public rewardToken;
-    uint8 public rewardTokenDecimals;
     uint256 public duration;
 
     uint256 public periodFinish = 0;
@@ -23,18 +22,11 @@ contract Pool is SaferMoonWrapper, IRewardDistributionRecipient {
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
 
-    constructor(
-        address _stakedToken,
-        uint8 _stakedTokenDecimals,
-        address _rewardToken,
-        uint8 _rewardTokenDecimals,
-        uint256 _duration
-    )
+    constructor(address _stakedToken, address _rewardToken,  uint256 _duration)
         public
-        SaferMoonWrapper(_stakedToken, _stakedTokenDecimals)
+        SaferMoonWrapper(_stakedToken)
     {
         rewardToken = IERC20(_rewardToken);
-        rewardTokenDecimals = _rewardTokenDecimals;
         duration = _duration;
     }
 
@@ -61,16 +53,16 @@ contract Pool is SaferMoonWrapper, IRewardDistributionRecipient {
                 lastTimeRewardApplicable()
                     .sub(lastUpdateTime)
                     .mul(rewardRate)
-                    .mul(uint256(10) ** rewardTokenDecimals)
-                    .div(totalSupply().mul(uint256(10) ** (rewardTokenDecimals - stakedTokenDecimals)))
+                    .mul(1e18)
+                    .div(totalSupply().mul(1e9))
             );
     }
 
     function earned(address account) public view returns (uint256) {
         return
-            balanceOf(account).mul(uint256(10) ** (rewardTokenDecimals - stakedTokenDecimals))
+            balanceOf(account).mul(1e9)
                 .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
-                .div(uint256(10) ** rewardTokenDecimals)
+                .div(1e18)
                 .add(rewards[account]);
     }
 

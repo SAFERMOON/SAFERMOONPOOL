@@ -25,14 +25,14 @@ contract SaferMoonWrapper {
     }
 
     function stake(uint256 amount) public {
-        _totalReflections = stakedToken.reflectionFromToken(totalSupply().add(amount), false);
-        _reflections[msg.sender] = stakedToken.reflectionFromToken(stakedToken.tokenFromReflection(_reflections[msg.sender]).add(amount), false);
+        _totalReflections = _totalReflections.add(stakedToken.reflectionFromToken(amount, false));
+        _reflections[msg.sender] = _reflections[msg.sender].add(stakedToken.reflectionFromToken(amount, !stakedToken.isExcludedFromFee(address(this))));
         stakedToken.transferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public {
-        _totalReflections = stakedToken.reflectionFromToken(totalSupply().sub(amount), false);
-        _reflections[msg.sender] = stakedToken.reflectionFromToken(stakedToken.tokenFromReflection(_reflections[msg.sender]).sub(amount), false);
+        _totalReflections = _totalReflections.sub(stakedToken.reflectionFromToken(amount, false));
+        _reflections[msg.sender] = _reflections[msg.sender].sub(stakedToken.reflectionFromToken(amount, !stakedToken.isExcludedFromFee(address(this))));
         stakedToken.transfer(msg.sender, amount);
     }
 }
