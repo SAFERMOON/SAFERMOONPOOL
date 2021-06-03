@@ -130,6 +130,7 @@ describe("Pool", () => {
 
   describe("rewardPerToken", () => {
     it("returns the number of reward tokens per staked token", async () => {
+      await stakedToken.excludeFromFee(pool.address);
       await pool.setRewardDistribution(owner.address);
       await pool.notifyRewardAmount("1000000000000000000000");
 

@@ -32,7 +32,7 @@ contract SaferMoonWrapper {
 
     function withdraw(uint256 amount) public {
         _totalReflections = _totalReflections.sub(stakedToken.reflectionFromToken(amount, false));
-        _reflections[msg.sender] = _reflections[msg.sender].sub(stakedToken.reflectionFromToken(amount, !stakedToken.isExcludedFromFee(address(this))));
+        _reflections[msg.sender] = _reflections[msg.sender].sub(stakedToken.reflectionFromToken(amount, false)); // don't deduct fee before transfer
         stakedToken.transfer(msg.sender, amount);
     }
 }
