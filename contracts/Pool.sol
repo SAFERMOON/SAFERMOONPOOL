@@ -109,4 +109,10 @@ contract Pool is SaferMoonWrapper, RewardDistributionRecipient {
         periodFinish = block.timestamp.add(duration);
         emit RewardAdded(reward);
     }
+
+    // Withdraw reward. EMERGENCY ONLY.
+    function emergencyRewardWithdraw(uint256 amount) external onlyOwner {
+        require(amount <= rewardToken.balanceOf(address(this)), 'not enough token');
+        rewardToken.transfer(msg.sender, amount);
+    }
 }
